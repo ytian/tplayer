@@ -1,3 +1,5 @@
+#include <unistd.h>
+#include <sys/stat.h>
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
@@ -7,15 +9,15 @@
 #include <libswresample/swresample.h>
 #include "tool.h"
 
-#define V_QUEUE_MAX_SIZE 100 //视频的包队列最大长度
-#define A_QUEUE_MAX_SIZE 200 //音频的包队列最大长度
+#define V_QUEUE_MAX_SIZE 100          //视频的包队列最大长度
+#define A_QUEUE_MAX_SIZE 200          //音频的包队列最大长度
 #define AUDIO_SAMPLE_BUFFER_SIZE 2048 //音频设备内部缓存区的大小（单位为采样数）
-#define WAIT_TIME_MS 5 //轮询等待时间
-#define SAMPLE_BYTE 2 //采样编码对应的字节数
-#define DISPLAY_WIDTH 800 //播放窗口最大宽度
-#define DISPLAY_HEIGHT 600 //播放窗口最大高度
+#define WAIT_TIME_MS 5                //轮询等待时间
+#define SAMPLE_BYTE 2                 //采样编码对应的字节数
+#define DISPLAY_WIDTH 800             //播放窗口最大宽度
+#define DISPLAY_HEIGHT 600            //播放窗口最大高度
 
-#define FF_REFRESH_EVENT (SDL_USEREVENT) //播放刷新事件
+#define FF_REFRESH_EVENT (SDL_USEREVENT)  //播放刷新事件
 #define FF_QUIT_EVENT (SDL_USEREVENT + 1) //退出事件
 
 //GlobalContext表示全局上下文，可以对应为类
@@ -36,11 +38,11 @@ typedef struct
     struct SwsContext *sws; //视频帧输出转换器
 
     SDL_AudioDeviceID aDeviceID; //音频输出设备id
-    SwrContext *swr; //音频帧输出转换器
-    uint8_t *aBuffer; //音频帧输出缓存
+    SwrContext *swr;             //音频帧输出转换器
+    uint8_t *aBuffer;            //音频帧输出缓存
 
     //SDL播放用
-    SDL_Window *screen; 
+    SDL_Window *screen;
     SDL_Renderer *renderer;
     SDL_Texture *texture;
 
@@ -280,7 +282,6 @@ static GlobalContext *initContext(char *infile)
 static void freeContext(GlobalContext *gc)
 {
     SDL_Quit();
-
     if (gc->vStreamIndex != -1)
     {
         avcodec_close(gc->vCodecCtx);
@@ -297,10 +298,9 @@ static void freeContext(GlobalContext *gc)
     if (gc->aStreamIndex != -1)
     {
         avcodec_close(gc->aCodecCtx);
-
         free(gc->aBuffer);
 
-        sws_freeContext(gc->sws);
+        // sws_freeContext(gc->sws); //此方法调用在强制退出时候有异常，暂不知晓原因，先去掉；
     }
 
     avformat_close_input(&gc->formatCtx);
@@ -338,7 +338,7 @@ static void delayRefresh(int delay)
 static double getCurAudioClock(GlobalContext *gc)
 {
     int sampleBytesPerSec = gc->aCodecCtx->channels * SAMPLE_BYTE * gc->aCodecCtx->sample_rate; //每秒采样大小
-    int leftBytes = SDL_GetQueuedAudioSize(gc->aDeviceID);//音频设备缓冲区未播放的大小
+    int leftBytes = SDL_GetQueuedAudioSize(gc->aDeviceID); //音频设备缓冲区未播放的大小
     double leftSecs = 1.0 * leftBytes / sampleBytesPerSec;
     double clock = gc->audioClock - leftSecs;
     return clock;
@@ -445,6 +445,7 @@ static int audioThread(void *data)
     GlobalContext *gc = (GlobalContext *)data;
     AVFrame *frame = av_frame_alloc();
 
+    SDL_Delay(20); //等待包初始填充
     while (1)
     {
 
@@ -464,7 +465,7 @@ static int audioThread(void *data)
                 continue;
             }
             else
-            {   
+            {
                 //finish!
                 break;
             }
@@ -598,10 +599,21 @@ static void refreshDisplay(GlobalContext *gc)
 
 int main(int argc, char *argv[])
 {
-    if (argc < 2) {
+    if (argc < 2)
+    {
         printf("Usage: play3 [file]\n");
         exit(1);
     }
+    char *infile = argv[1];
+
+    struct stat filebuf;
+    int exist = stat(infile, &filebuf);
+    if (exist != 0)
+    {
+        printf("file(%s) not exists!\n", infile);
+        exit(1);
+    }
+
     //一个工具，可以快速打印段错误的栈信息，方便排查错误
     if (signal(SIGSEGV, sighandler_dump_stack) == SIG_ERR)
     {
@@ -614,7 +626,7 @@ int main(int argc, char *argv[])
         printf("Could not initialize SDL - %s\n", SDL_GetError());
         exit(1);
     }
-    GlobalContext *gc = initContext(argv[1]);
+    GlobalContext *gc = initContext(infile);
     if (gc == NULL)
     {
         printf("init global context failed!\n");
