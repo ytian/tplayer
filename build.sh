@@ -1,0 +1,1 @@
+gcc -o tplayer tplayer.c -lavutil -lavformat -lavcodec -lswscale -lswresample `sdl2-config --cflags --libs`
