@@ -6,7 +6,9 @@ tiny player using ffmpeg, SDL2
 
 ### 编译
 编译前需要安装ffmpeg和SDL2：
+
 [ffmpeg下载](https://www.ffmpeg.org/download.html)
+
 [SDL2下载](https://www.libsdl.org/download-2.0.php)
 
 代码无其他依赖，编译只需要运行：sh build.sh，结束后生成tplayer执行程序。
@@ -16,11 +18,14 @@ tplayer [音频或者视频文件]
 
 ### 主要参考资料
 [《An ffmpeg and SDL Tutorial》](http://dranger.com/ffmpeg/tutorial01.html)
+
 [ffmpeg-video-player](https://github.com/rambodrahmani/ffmpeg-video-player)
 
 ### 其他资料
 [FFmpeg+SDL2实现音频流播放](https://juejin.im/post/5cc2af6d5188252e3c71117b)
+
 [FFmpeg学习3：播放音频](https://www.cnblogs.com/wangguchangqing/p/5788805.html)
+
 [FFmpeg例子：resampling_audio分析](https://www.jianshu.com/p/73d706f650e2)
 
 ### 写在最后
